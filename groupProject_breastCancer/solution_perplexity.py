@@ -160,7 +160,7 @@ def load_data():
     y = data.target
     feature_names = data.feature_names
 
-    # Auswahl der drei Merkmale: [0] = mean radius, [1] = mean texture, [2] = mean smoothness
+    # Auswahl der drei Merkmale: [0] = mean radius, [1] = mean texture, [4] = mean smoothness
     selected_indices = [0, 1, 4]
     X_selected = X[:, selected_indices]
     selected_feature_names = [feature_names[i] for i in selected_indices]
