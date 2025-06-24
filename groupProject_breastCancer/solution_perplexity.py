@@ -36,6 +36,14 @@ class DecisionTree:
         # Verwende nur 3 Merkmale gemäß Aufgabenstellung
         self.n_features = 3
         self.root = self._grow_tree(X, y)
+        
+#Pseudocode
+#1. Wenn keine n_features vorgegeben:
+#     → n_features = Anzahl aller Merkmale
+#2. Starte den Aufbau des Baums:
+#     → root = _grow_tree(X, y, depth = 0)
+
+
 '''Baut den Baum rekursiv auf: teilt die Daten, bis ein Stopp-Kriterium erreicht ist'''
     def _grow_tree(self, X, y, depth=0):
         n_samples, n_feats = X.shape
@@ -60,6 +68,25 @@ class DecisionTree:
         right = self._grow_tree(X[right_idxs, :], y[right_idxs], depth + 1)
 
         return Node(best_feature, best_thresh, left, right)
+
+#Pseudocode:
+#1. Wenn:
+#     - maximale Tiefe erreicht ODER
+#     - nur eine Klasse vorhanden ODER
+#     - zu wenige Beispiele vorhanden:
+#     → Erstelle ein Blatt mit der häufigsten Klasse#
+#2. Wähle zufällig n_features viele Merkmale
+#3. Finde für jedes Merkmal die beste Schwelle:
+#     → Wähle die mit dem höchsten Informationsgewinn
+#4. Teile die Daten anhand dieser besten Schwelle:
+#     → links = alle ≤ Schwelle
+#     → rechts = alle > Schwelle
+#5. Baue den linken Teilbaum (rekursiv):
+#     → left = _grow_tree(linke Daten, depth + 1)
+#6. Baue den rechten Teilbaum (rekursiv):
+#     → right = _grow_tree(rechte Daten, depth + 1)
+#7. Rückgabe: Knoten mit Merkmal, Schwelle, left und right
+
         
 '''Findet den besten Split (Merkmal + Schwelle), der den höchsten Informationsgewinn liefert'''
     def _best_split(self, X, y, feat_idxs):
@@ -79,6 +106,13 @@ class DecisionTree:
                     split_threshold = thr
 
         return split_idx, split_threshold
+
+#Pseudocode:
+#1. Für jedes Merkmal:
+#     - für jeden möglichen Schwellenwert:
+#         → berechne Informationsgewinn
+#         → speichere besten Split
+#2. Rückgabe: bestes Merkmal und Schwelle
         
 '''Berechnet den Informationsgewinn eines möglichen Splits'''
     def _information_gain(self, y, X_column, threshold):
@@ -99,7 +133,14 @@ class DecisionTree:
         # Informationsgewinn berechnen
         information_gain = parent_entropy - child_entropy
         return information_gain
-        
+
+#Pseudocode:
+#1. Berechne Entropie der Elternmenge
+#2. Teile Daten in links/rechts
+#3. Berechne gewichtete Entropie der Kinder
+#4. Informationsgewinn = Elternentropie – Kinderentropie
+#5. Rückgabe: Informationsgewinn
+
 '''Teilt die Daten in zwei Gruppen – je nachdem, ob ein Wert <= Schwelle ist oder nicht'''
     def _split(self, X_column, split_thresh):
         left_idxs = np.argwhere(X_column <= split_thresh).flatten()
@@ -122,6 +163,11 @@ class DecisionTree:
 '''Führt Vorhersagen für mehrere Beispiele durch – traversiert den Baum'''
     def predict(self, X):
         return np.array([self._traverse_tree(x, self.root) for x in X])
+        
+#Pseudocode:
+#1. Für jeden Datenpunkt x:
+#     → Ergebnis = _traverse_tree(x, root)
+#2. Rückgabe: Liste der Vorhersagen
 
 '''Wandert durch den Baum (rekursiv), bis ein Blatt erreicht ist – gibt dann Vorhersage zurück '''
     def _traverse_tree(self, x, node):
@@ -131,6 +177,15 @@ class DecisionTree:
         if x[node.feature] <= node.threshold:
             return self._traverse_tree(x, node.left)
         return self._traverse_tree(x, node.right)
+
+#Pseudocode:
+#1. Wenn node ein Blatt ist:
+#     → gib node.value zurück
+#2. Wenn x[node.feature] ≤ node.threshold:
+#     → gehe nach links
+#   Sonst:
+#     → gehe nach rechts
+#3. Wiederhole rekursiv mit neuem Knoten
         
 '''Gibt neben der Vorhersage auch den Entscheidungsweg durch den Baum aus'''
     # Neue Methode für Entscheidungspfad
