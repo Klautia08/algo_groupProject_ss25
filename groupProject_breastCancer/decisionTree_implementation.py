@@ -1,8 +1,17 @@
+"""
+Projektarbeit: Entscheidungsbaum mit ID3-Algorithmus
+
+Ziel: Klassifikation von Brusttumoren (benign/malignant) mit eigenem ID3-Algorithmus
+und Vergleich mit Scikit-learn DecisionTreeClassifier.
+"""
+
 import numpy as np
 from collections import Counter
 from sklearn.datasets import load_breast_cancer
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+import matplotlib.pyplot as plt
 
-
+'''Repräsentiert einen einzelnen Knoten im Entscheidungsbaum (entweder Entscheidung oder Blatt).'''
 class Node:
     def __init__(self, feature=None, threshold=None, left=None, right=None, *, value=None):
         self.feature = feature  # Index des verwendeten Merkmals
@@ -10,23 +19,32 @@ class Node:
         self.left = left  # Linker Kindknoten (<= Schwellwert)
         self.right = right  # Rechter Kindknoten (> Schwellwert)
         self.value = value  # Nur in Blattknoten: Vorhergesagte Klasse
-
+'''Prüft, ob dieser Knoten ein Blatt ist (hat keine weiteren Unterteilungen)'''
     def is_leaf_node(self):
         return self.value is not None
 
-
+'''Implementiert einen Entscheidungsbaum-Klassifikator'''
 class DecisionTree:
     def __init__(self, min_samples_split=2, max_depth=100, n_features=None):
         self.min_samples_split = min_samples_split  # Mindestanzahl für Teilung
         self.max_depth = max_depth  # Maximale Baumtiefe
         self.n_features = n_features  # Anzahl verwendeter Merkmale
         self.root = None  # Wurzelknoten
-
+        
+'''Startet das Training: baut den Entscheidungsbaum aus den Trainingsdaten'''
     def fit(self, X, y):
         # Verwende nur 3 Merkmale gemäß Aufgabenstellung
         self.n_features = 3
         self.root = self._grow_tree(X, y)
+        
+#Pseudocode
+#1. Wenn keine n_features vorgegeben:
+#     → n_features = Anzahl aller Merkmale
+#2. Starte den Aufbau des Baums:
+#     → root = _grow_tree(X, y, depth = 0)
 
+
+'''Baut den Baum rekursiv auf: teilt die Daten, bis ein Stopp-Kriterium erreicht ist'''
     def _grow_tree(self, X, y, depth=0):
         n_samples, n_feats = X.shape
         n_labels = len(np.unique(y))
@@ -51,6 +69,26 @@ class DecisionTree:
 
         return Node(best_feature, best_thresh, left, right)
 
+#Pseudocode:
+#1. Wenn:
+#     - maximale Tiefe erreicht ODER
+#     - nur eine Klasse vorhanden ODER
+#     - zu wenige Beispiele vorhanden:
+#     → Erstelle ein Blatt mit der häufigsten Klasse#
+#2. Wähle zufällig n_features viele Merkmale
+#3. Finde für jedes Merkmal die beste Schwelle:
+#     → Wähle die mit dem höchsten Informationsgewinn
+#4. Teile die Daten anhand dieser besten Schwelle:
+#     → links = alle ≤ Schwelle
+#     → rechts = alle > Schwelle
+#5. Baue den linken Teilbaum (rekursiv):
+#     → left = _grow_tree(linke Daten, depth + 1)
+#6. Baue den rechten Teilbaum (rekursiv):
+#     → right = _grow_tree(rechte Daten, depth + 1)
+#7. Rückgabe: Knoten mit Merkmal, Schwelle, left und right
+
+        
+'''Findet den besten Split (Merkmal + Schwelle), der den höchsten Informationsgewinn liefert'''
     def _best_split(self, X, y, feat_idxs):
         best_gain = -1
         split_idx, split_threshold = None, None
@@ -69,6 +107,14 @@ class DecisionTree:
 
         return split_idx, split_threshold
 
+#Pseudocode:
+#1. Für jedes Merkmal:
+#     - für jeden möglichen Schwellenwert:
+#         → berechne Informationsgewinn
+#         → speichere besten Split
+#2. Rückgabe: bestes Merkmal und Schwelle
+        
+'''Berechnet den Informationsgewinn eines möglichen Splits'''
     def _information_gain(self, y, X_column, threshold):
         # Entropie des Elternknotens
         parent_entropy = self._entropy(y)
@@ -88,25 +134,42 @@ class DecisionTree:
         information_gain = parent_entropy - child_entropy
         return information_gain
 
+#Pseudocode:
+#1. Berechne Entropie der Elternmenge
+#2. Teile Daten in links/rechts
+#3. Berechne gewichtete Entropie der Kinder
+#4. Informationsgewinn = Elternentropie – Kinderentropie
+#5. Rückgabe: Informationsgewinn
+
+'''Teilt die Daten in zwei Gruppen – je nachdem, ob ein Wert <= Schwelle ist oder nicht'''
     def _split(self, X_column, split_thresh):
         left_idxs = np.argwhere(X_column <= split_thresh).flatten()
         right_idxs = np.argwhere(X_column > split_thresh).flatten()
         return left_idxs, right_idxs
-
+        
+'''Berechnet die Entropie (Maß für Unreinheit der Klassenverteilung)'''
     def _entropy(self, y):
         # Berechnet Entropie: H(S) = -Σ p_i * log2(p_i)
         hist = np.bincount(y)
         ps = hist / len(y)
         return -np.sum([p * np.log2(p) for p in ps if p > 0])
 
+'''Gibt das häufigste Label zurück – für Fälle, in denen ein Blatt erstellt wird'''
     def _most_common_label(self, y):
         counter = Counter(y)
         value = counter.most_common(1)[0][0]
         return value
 
+'''Führt Vorhersagen für mehrere Beispiele durch – traversiert den Baum'''
     def predict(self, X):
         return np.array([self._traverse_tree(x, self.root) for x in X])
+        
+#Pseudocode:
+#1. Für jeden Datenpunkt x:
+#     → Ergebnis = _traverse_tree(x, root)
+#2. Rückgabe: Liste der Vorhersagen
 
+'''Wandert durch den Baum (rekursiv), bis ein Blatt erreicht ist – gibt dann Vorhersage zurück '''
     def _traverse_tree(self, x, node):
         if node.is_leaf_node():
             return node.value
@@ -115,10 +178,21 @@ class DecisionTree:
             return self._traverse_tree(x, node.left)
         return self._traverse_tree(x, node.right)
 
+#Pseudocode:
+#1. Wenn node ein Blatt ist:
+#     → gib node.value zurück
+#2. Wenn x[node.feature] ≤ node.threshold:
+#     → gehe nach links
+#   Sonst:
+#     → gehe nach rechts
+#3. Wiederhole rekursiv mit neuem Knoten
+        
+'''Gibt neben der Vorhersage auch den Entscheidungsweg durch den Baum aus'''
     # Neue Methode für Entscheidungspfad
     def predict_with_path(self, x):
         return self._traverse_tree_with_path(x, self.root, [])
-
+        
+'''Wandert durch den Baum (rekursiv), bis ein Blatt erreicht ist – gibt dann Vorhersage zurück'''
     def _traverse_tree_with_path(self, x, node, path):
         if node.is_leaf_node():
             path.append(f"Leaf: Klasse {node.value}")
@@ -136,6 +210,7 @@ class DecisionTree:
         else:
             return self._traverse_tree_with_path(x, node.right, path)
 
+'''Gibt den gesamten Entscheidungsbaum als eingerückte Textstruktur aus'''
     # Neue Methode für textuelle Baumausgabe
     def print_tree(self, node=None, depth=0):
         if node is None:
@@ -153,7 +228,7 @@ class DecisionTree:
         self.print_tree(node.right, depth + 1)
 
 
-# Datenvorverarbeitung
+'''Datenvorverarbeitung'''
 def load_data():
     data = load_breast_cancer()
     X = data.data
@@ -200,3 +275,22 @@ if __name__ == "__main__":
     # Baumstruktur ausgeben
     print("\nBaumstruktur:")
     clf.print_tree()
+
+    # Vergleich mit scikit-learn
+    sk_clf = DecisionTreeClassifier(max_depth=3, random_state=0)
+    sk_clf.fit(X, y)
+    X_patients = np.array([patient_A, patient_B])
+    sk_preds = sk_clf.predict(X_patients)
+
+    print("\n--- Vergleich mit scikit-learn DecisionTreeClassifier ---")
+    print(f"Patient A: Vorhersage = {'benign' if sk_preds[0] == 1 else 'malignant'} (scikit-learn)")
+    print(f"Patient B: Vorhersage = {'benign' if sk_preds[1] == 1 else 'malignant'} (scikit-learn)")
+
+    plt.figure(figsize=(12, 6))
+    plot_tree(sk_clf, feature_names=feature_names, class_names=["malignant", "benign"],
+              filled=True, rounded=True)
+    plt.title("Scikit-learn Entscheidungsbaum (max_depth=3)")
+    plt.show()
+
+
+
