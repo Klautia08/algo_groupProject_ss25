@@ -1,6 +1,15 @@
+"""
+Projektarbeit: Entscheidungsbaum mit ID3-Algorithmus
+
+Ziel: Klassifikation von Brusttumoren (benign/malignant) mit eigenem ID3-Algorithmus
+und Vergleich mit Scikit-learn DecisionTreeClassifier.
+"""
+
 import numpy as np
 from collections import Counter
 from sklearn.datasets import load_breast_cancer
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+import matplotlib.pyplot as plt
 
 
 class Node:
@@ -200,3 +209,22 @@ if __name__ == "__main__":
     # Baumstruktur ausgeben
     print("\nBaumstruktur:")
     clf.print_tree()
+
+    # Vergleich mit scikit-learn
+    sk_clf = DecisionTreeClassifier(max_depth=3, random_state=0)
+    sk_clf.fit(X, y)
+    X_patients = np.array([patient_A, patient_B])
+    sk_preds = sk_clf.predict(X_patients)
+
+    print("\n--- Vergleich mit scikit-learn DecisionTreeClassifier ---")
+    print(f"Patient A: Vorhersage = {'benign' if sk_preds[0] == 1 else 'malignant'} (scikit-learn)")
+    print(f"Patient B: Vorhersage = {'benign' if sk_preds[1] == 1 else 'malignant'} (scikit-learn)")
+
+    plt.figure(figsize=(12, 6))
+    plot_tree(sk_clf, feature_names=feature_names, class_names=["malignant", "benign"],
+              filled=True, rounded=True)
+    plt.title("Scikit-learn Entscheidungsbaum (max_depth=3)")
+    plt.show()
+
+
+
